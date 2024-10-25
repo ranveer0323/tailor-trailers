@@ -1,4 +1,4 @@
-from moviepy.editor import VideoFileClip
+from moviepy.editor import VideoFileClip, concatenate_videoclips
 from langchain.tools import tool
 
 
@@ -34,5 +34,33 @@ class VideoTools:
 
         # Close resources
         video_clip.close()
+
+        return output_path
+
+    @tool("Merge Video Clips")
+    def merge_video_clips(clip_paths: list, output_path: str) -> str:
+        """
+        Useful for merging multiple video clips into a single video trailer.
+
+        Args:
+            clip_paths (list): List of file paths for the individual video clips.
+            output_path (str): Path to save the merged video trailer.
+
+        Returns:
+            str: Path to the saved merged video file.
+        """
+        # Load each video clip from provided paths
+        video_clips = [VideoFileClip(path) for path in clip_paths]
+
+        # Concatenate the video clips
+        merged_clip = concatenate_videoclips(video_clips, method="compose")
+
+        # Save the merged video
+        merged_clip.write_videofile(
+            output_path, codec="libx264", audio_codec="aac")
+
+        # Close resources
+        for clip in video_clips:
+            clip.close()
 
         return output_path

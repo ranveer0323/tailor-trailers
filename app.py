@@ -126,6 +126,11 @@ def main():
     if 'final_trailers' not in st.session_state:
         st.session_state.final_trailers = []
 
+    # Create output directory if it doesn't exist
+    output_dir = "generated_trailers"
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
     # Input section
     with st.form("input_form"):
         col1, col2 = st.columns(2)
@@ -170,17 +175,15 @@ def main():
                     'video_path': video_path
                 })
 
-                # Store results
+                # Store sequences
                 if os.path.exists('trailer_sequences.md'):
                     with open('trailer_sequences.md', 'r') as f:
                         st.session_state.trailer_sequences = f.read()
 
-                # Find and store generated trailers
-                trailer_dir = os.path.dirname(video_path)
+                # Update final trailers list
                 st.session_state.final_trailers = [
-                    os.path.join(trailer_dir, f)
-                    for f in os.listdir(trailer_dir)
-                    if f.endswith('_trailer.mp4')
+                    f for f in os.listdir(output_dir)
+                    if f.endswith('.mp4') and f.startswith(f"{movie_name.lower().replace(' ', '_')}")
                 ]
 
             st.success("Trailer generation complete!")
@@ -197,15 +200,30 @@ def main():
 
     if st.session_state.final_trailers:
         st.header("🎥 Generated Trailers")
-        for trailer_path in st.session_state.final_trailers:
-            with open(trailer_path, 'rb') as trailer_file:
-                st.video(trailer_file.read())
+        for trailer_file in st.session_state.final_trailers:
+            trailer_path = os.path.join(output_dir, trailer_file)
+            try:
+                st.subheader(f"Trailer: {trailer_file}")
+                with open(trailer_path, 'rb') as video_file:
+                    video_bytes = video_file.read()
+                    st.video(video_bytes)
+            except Exception as e:
+                st.error(f"Error loading trailer {trailer_file}: {str(e)}")
 
     # Cleanup button
     if st.sidebar.button("Clear All"):
+        # Clear temporary uploads
         if os.path.exists("temp_uploads"):
             for file in os.listdir("temp_uploads"):
                 os.remove(os.path.join("temp_uploads", file))
+            os.rmdir("temp_uploads")
+
+        # Clear generated trailers
+        if os.path.exists(output_dir):
+            for file in os.listdir(output_dir):
+                os.remove(os.path.join(output_dir, file))
+
+        # Clear session state
         st.session_state.processing = False
         st.session_state.trailer_sequences = None
         st.session_state.final_trailers = []

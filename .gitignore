@@ -1,3 +1,5 @@
 .env
 outputs/
 tools/__pycache__/
+main.py 
+main2.py

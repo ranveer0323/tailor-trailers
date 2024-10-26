@@ -112,9 +112,9 @@ def initialize_crew():
 
 
 def main():
-    st.set_page_config(page_title="Movie Trailer Generator", layout="wide")
+    st.set_page_config(page_title="Tailor Trailer", layout="wide")
 
-    st.title("🎬 AI Movie Trailer Generator")
+    st.title("🎬 Tailor Trailer")
     st.write(
         "Generate tailored movie trailers for different audience segments using AI agents.")
 

@@ -112,122 +112,210 @@ def initialize_crew():
 
 
 def main():
-    st.set_page_config(page_title="Tailor Trailer", layout="wide")
+    st.set_page_config(
+        page_title="Tailor Trailer",
+        layout="wide",
+        initial_sidebar_state="collapsed"
+    )
 
-    st.title("🎬 Tailor Trailer")
-    st.write(
-        "Generate tailored movie trailers for different audience segments using AI agents.")
+    # Custom CSS for centering and styling
+    st.markdown("""
+        <style>
+        .main {
+            padding: 2rem;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .stButton button {
+            width: 100%;
+            margin-top: 1rem;
+        }
+        .upload-header {
+            margin-bottom: 0.5rem;
+            color: #333;
+            font-size: 1.2rem;
+        }
+        div[data-testid="stVerticalBlock"] {
+            gap: 2rem;
+        }
+        div[data-testid="column"] {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .input-section {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .centered-title {
+            text-align: center !important;
+            margin-left: auto !important;
+            margin-right: auto !important;
+        }
+        .centered-text {
+            text-align: center !important;
+            margin-left: auto !important;
+            margin-right: auto !important;
+        }
+        </style>
+    """, unsafe_allow_html=True)
 
-    # Initialize session state
-    if 'processing' not in st.session_state:
-        st.session_state.processing = False
-    if 'trailer_sequences' not in st.session_state:
-        st.session_state.trailer_sequences = None
-    if 'final_trailers' not in st.session_state:
-        st.session_state.final_trailers = []
+    # Center container
+    container = st.container()
 
-    # Create output directory if it doesn't exist
-    output_dir = "generated_trailers"
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
+    with container:
+        # Add some vertical spacing at the top
+        st.markdown("<div style='padding-top: 1rem;'></div>",
+                    unsafe_allow_html=True)
 
-    # Input section
-    with st.form("input_form"):
-        col1, col2 = st.columns(2)
+        # Centered columns for title and description
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            # Header section with centered text
+            st.markdown(
+                '<h1 class="centered-title">🎬 Tailor Trailer</h1>', unsafe_allow_html=True)
+            st.markdown(
+                '<p class="centered-text">Generate tailored movie trailers for different audience segments using AI Agents.</p>', unsafe_allow_html=True)
 
-        with col1:
-            transcript_file = st.file_uploader(
-                "Upload Movie Transcript (TXT)", type=['txt'])
-            movie_name = st.text_input("Movie Name")
+        # Initialize session state
+        if 'processing' not in st.session_state:
+            st.session_state.processing = False
+        if 'trailer_sequences' not in st.session_state:
+            st.session_state.trailer_sequences = None
+        if 'final_trailers' not in st.session_state:
+            st.session_state.final_trailers = []
+
+        # Create output directory if it doesn't exist
+        output_dir = "generated_trailers"
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+
+        # Centered column for input form
+        col1, col2, col3 = st.columns([1, 2, 1])
 
         with col2:
-            video_file = st.file_uploader(
-                "Upload Movie File (MP4)", type=['mp4'])
-            genre = st.text_input("Movie Genre")
+            with st.form("input_form"):
+                st.markdown("<div class='input-section'>",
+                            unsafe_allow_html=True)
 
-        submit_button = st.form_submit_button("Generate Trailers")
+                # Movie Details Section
+                st.markdown(
+                    '<h3 class="centered-text">Movie Details</h3>', unsafe_allow_html=True)
+                movie_name = st.text_input("Movie Name🔤")
+                genre = st.text_input("Movie Genre🎭")
 
-    if submit_button and not st.session_state.processing:
-        if not all([transcript_file, video_file, movie_name, genre]):
-            st.error("Please provide all required inputs!")
-            return
+                st.markdown("<div style='margin: 2rem 0;'></div>",
+                            unsafe_allow_html=True)
 
-        if not os.getenv("GROQ_API_KEY"):
-            st.error("GROQ API Key not found in environment variables!")
-            return
+                # Upload Files Section
+                st.markdown(
+                    '<h3 class="centered-text">Upload Files</h3>', unsafe_allow_html=True)
+                transcript_file = st.file_uploader(
+                    "Upload Movie Transcript (TXT)",
+                    type=['txt'],
+                    help="Upload the movie transcript in TXT format"
+                )
+                video_file = st.file_uploader(
+                    "Upload Movie File (MP4)",
+                    type=['mp4'],
+                    help="Upload the movie file in MP4 format"
+                )
 
-        st.session_state.processing = True
+                st.markdown("<div style='margin: 1rem 0;'></div>",
+                            unsafe_allow_html=True)
 
-        try:
-            # Save uploaded files
-            temp_dir = "temp_uploads"
-            transcript_path = save_uploaded_file(transcript_file, temp_dir)
-            video_path = save_uploaded_file(video_file, temp_dir)
+                submit_button = st.form_submit_button("🎥 Generate Trailers")
+                st.markdown("</div>", unsafe_allow_html=True)
 
-            # Initialize and run crew
-            trailer_crew = initialize_crew()
+        if submit_button and not st.session_state.processing:
+            if not all([transcript_file, video_file, movie_name, genre]):
+                st.error("🚫 Please provide all required inputs!")
+                return
 
-            with st.spinner("Generating trailers... This might take a while"):
-                result = trailer_crew.kickoff(inputs={
-                    'file_path': transcript_path,
-                    'movie_name': movie_name,
-                    'genre': genre,
-                    'video_path': video_path
-                })
+            if not os.getenv("GROQ_API_KEY"):
+                st.error("🔑 GROQ API Key not found in environment variables!")
+                return
 
-                # Store sequences
-                if os.path.exists('trailer_sequences.md'):
-                    with open('trailer_sequences.md', 'r') as f:
-                        st.session_state.trailer_sequences = f.read()
+            st.session_state.processing = True
 
-                # Update final trailers list
-                st.session_state.final_trailers = [
-                    f for f in os.listdir(output_dir)
-                    if f.endswith('.mp4') and f.startswith(f"{movie_name.lower().replace(' ', '_')}")
-                ]
-
-            st.success("Trailer generation complete!")
-
-        except Exception as e:
-            st.error(f"An error occurred: {str(e)}")
-        finally:
-            st.session_state.processing = False
-
-    # Display results
-    if st.session_state.trailer_sequences:
-        st.header("📝 Generated Trailer Sequences")
-        st.markdown(st.session_state.trailer_sequences)
-
-    if st.session_state.final_trailers:
-        st.header("🎥 Generated Trailers")
-        for trailer_file in st.session_state.final_trailers:
-            trailer_path = os.path.join(output_dir, trailer_file)
             try:
-                st.subheader(f"Trailer: {trailer_file}")
-                with open(trailer_path, 'rb') as video_file:
-                    video_bytes = video_file.read()
-                    st.video(video_bytes)
+                temp_dir = "temp_uploads"
+                transcript_path = save_uploaded_file(transcript_file, temp_dir)
+                video_path = save_uploaded_file(video_file, temp_dir)
+
+                trailer_crew = initialize_crew()
+
+                with st.spinner("🎬 Generating trailers... This might take a while"):
+                    result = trailer_crew.kickoff(inputs={
+                        'file_path': transcript_path,
+                        'movie_name': movie_name,
+                        'genre': genre,
+                        'video_path': video_path
+                    })
+
+                    if os.path.exists('trailer_sequences.md'):
+                        with open('trailer_sequences.md', 'r') as f:
+                            st.session_state.trailer_sequences = f.read()
+
+                    st.session_state.final_trailers = [
+                        f for f in os.listdir(output_dir)
+                        if f.endswith('.mp4') and f.startswith(f"{movie_name.lower().replace(' ', '_')}")
+                    ]
+
+                st.success("✨ Trailer generation complete!")
+
             except Exception as e:
-                st.error(f"Error loading trailer {trailer_file}: {str(e)}")
+                st.error(f"❌ An error occurred: {str(e)}")
+            finally:
+                st.session_state.processing = False
 
-    # Cleanup button
-    if st.sidebar.button("Clear All"):
-        # Clear temporary uploads
-        if os.path.exists("temp_uploads"):
-            for file in os.listdir("temp_uploads"):
-                os.remove(os.path.join("temp_uploads", file))
-            os.rmdir("temp_uploads")
+        # Results section with improved styling
+        if st.session_state.trailer_sequences or st.session_state.final_trailers:
+            st.markdown("<hr style='margin: 2rem 0;'>", unsafe_allow_html=True)
 
-        # Clear generated trailers
-        if os.path.exists(output_dir):
-            for file in os.listdir(output_dir):
-                os.remove(os.path.join(output_dir, file))
+            col1, col2, col3 = st.columns([1, 2, 1])
+            with col2:
+                if st.session_state.trailer_sequences:
+                    st.markdown(
+                        '<h2 class="centered-text">📝 Generated Trailer Sequences</h2>', unsafe_allow_html=True)
+                    with st.expander("View Sequences", expanded=True):
+                        st.markdown(st.session_state.trailer_sequences)
 
-        # Clear session state
-        st.session_state.processing = False
-        st.session_state.trailer_sequences = None
-        st.session_state.final_trailers = []
-        st.success("All data cleared!")
+                if st.session_state.final_trailers:
+                    st.markdown(
+                        '<h2 class="centered-text">🎥 Generated Trailers</h2>', unsafe_allow_html=True)
+                    for trailer_file in st.session_state.final_trailers:
+                        trailer_path = os.path.join(output_dir, trailer_file)
+                        try:
+                            st.markdown(
+                                f'<h3 class="centered-text">🎬 {trailer_file}</h3>', unsafe_allow_html=True)
+                            with open(trailer_path, 'rb') as video_file:
+                                video_bytes = video_file.read()
+                                st.video(video_bytes)
+                        except Exception as e:
+                            st.error(
+                                f"Error loading trailer {trailer_file}: {str(e)}")
+
+        # Clear button at the bottom
+        if st.session_state.trailer_sequences or st.session_state.final_trailers:
+            col1, col2, col3 = st.columns([1, 2, 1])
+            with col2:
+                if st.button("🗑️ Clear All", type="secondary"):
+                    if os.path.exists("temp_uploads"):
+                        for file in os.listdir("temp_uploads"):
+                            os.remove(os.path.join("temp_uploads", file))
+                        os.rmdir("temp_uploads")
+
+                    if os.path.exists(output_dir):
+                        for file in os.listdir(output_dir):
+                            os.remove(os.path.join(output_dir, file))
+
+                    st.session_state.processing = False
+                    st.session_state.trailer_sequences = None
+                    st.session_state.final_trailers = []
+                    st.success("🧹 All data cleared!")
+                    st.rerun()
 
 
 if __name__ == "__main__":
